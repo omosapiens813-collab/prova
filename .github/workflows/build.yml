@@ -1,0 +1,41 @@
+name: Build NDS Homebrew
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compila .nds con devkitARM
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout codice sorgente
+        uses: actions/checkout@v4
+
+      - name: Installa devkitPRO
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget make
+          wget -U "dkp-apt" https://apt.devkitpro.org/install-devkitpro-pacman -O /tmp/install-dkp.sh
+          chmod +x /tmp/install-dkp.sh
+          sudo /tmp/install-dkp.sh
+          sudo dkp-pacman --noconfirm -S nds-dev
+
+      - name: Compila
+        run: |
+          export DEVKITPRO=/opt/devkitpro
+          export DEVKITARM=/opt/devkitpro/devkitARM
+          export PATH=/opt/devkitpro/tools/bin:/opt/devkitpro/devkitARM/bin:$PATH
+          make clean || true
+          make -j$(nproc)
+          ls -lh *.nds
+
+      - name: Pubblica nds_texture_editor.nds
+        uses: actions/upload-artifact@v4
+        with:
+          name: nds_texture_editor
+          path: nds_texture_editor.nds
+          retention-days: 90
+          if-no-files-found: error
