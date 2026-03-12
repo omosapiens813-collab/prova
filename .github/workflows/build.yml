@@ -23,19 +23,37 @@ jobs:
           sudo /tmp/install-dkp.sh
           sudo dkp-pacman --noconfirm -S nds-dev
 
-      - name: Compila
+      - name: Trova e compila
         run: |
           export DEVKITPRO=/opt/devkitpro
           export DEVKITARM=/opt/devkitpro/devkitARM
           export PATH=/opt/devkitpro/tools/bin:/opt/devkitpro/devkitARM/bin:$PATH
+
+          # Trova il Makefile (root o sottocartella)
+          if [ -f "Makefile" ]; then
+            echo ">> Makefile trovato in ROOT"
+            BUILD_DIR="."
+          elif [ -f "nds_texture_editor/Makefile" ]; then
+            echo ">> Makefile trovato in nds_texture_editor/"
+            BUILD_DIR="nds_texture_editor"
+          else
+            echo "ERRORE: Makefile non trovato!"
+            find . -name "Makefile" || true
+            exit 1
+          fi
+
+          cd "$BUILD_DIR"
+          echo ">> Directory di build: $(pwd)"
+          ls -la
           make clean || true
           make -j$(nproc)
-          ls -lh *.nds
+          find . -name "*.nds" -exec ls -lh {} \;
 
       - name: Pubblica nds_texture_editor.nds
         uses: actions/upload-artifact@v4
         with:
           name: nds_texture_editor
-          path: nds_texture_editor.nds
+          path: "**/*.nds"
           retention-days: 90
           if-no-files-found: error
+
